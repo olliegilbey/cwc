@@ -1,3 +1,5 @@
+use std::println;
+
 use chrono::{Datelike, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone};
 use clap::{App, Arg};
 use owo_colors::OwoColorize;
