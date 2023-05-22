@@ -2,7 +2,7 @@
 
 Generates event messages for social media for CUDOS online events.
 It uses the system clock to determine the dates and times of events and creates the necessary posts for those events.
-
+```
 USAGE:
     cwc [OPTIONS] --location <LOCATION>
 
@@ -12,7 +12,7 @@ OPTIONS:
     -t, --topics <TOPICS>        Sets the topics for the event
     -u, --url <URL>              Sets the URL location for the event
     -V, --version                Print version information
-
+````
 EXAMPLE:
 ```
 cwc -l d -t "Cats" -u "discord.gg/cudos"
