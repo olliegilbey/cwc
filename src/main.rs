@@ -34,7 +34,7 @@ fn main() {
         )
         .get_matches();
 
-    // Extract location and topics from the arguments
+    // Extract location, topics, and url from the arguments
     let location = matches.value_of("location").unwrap();
     let topics = matches.value_of("topics").unwrap_or("");
     let url = matches.value_of("url").unwrap_or("");
