@@ -39,7 +39,7 @@ fn main() {
     // Extract location, topics, and url from the arguments
     let location = matches.value_of("location").unwrap();
     let topics = matches.value_of("topics").unwrap_or("");
-    let url = matches.value_of("url").unwrap_or("");
+    let url = matches.value_of("url").unwrap_or("www.placeholderurl.com");
 
     // Calculate the session number
     let start_date = get_start_date();
