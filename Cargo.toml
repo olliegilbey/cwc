@@ -10,3 +10,7 @@ clap = "3.0.0"
 chrono = "0.4"
 owo-colors = "3.5.0"
 
+[[bin]]
+name = "cwc"
+path = "src/main.rs"
+

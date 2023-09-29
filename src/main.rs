@@ -1,20 +1,36 @@
 use std::println;
 
-use chrono::{Datelike, Local, NaiveDate, NaiveDateTime, NaiveTime, TimeZone};
+use chrono::{Datelike, NaiveDate, NaiveDateTime, NaiveTime, TimeZone, Timelike, Utc};
 use clap::{App, Arg};
 use owo_colors::OwoColorize;
+
+fn get_coffee_time_utc_tuesday() -> NaiveTime {
+    NaiveTime::from_hms_opt(11, 0, 0).expect("Invalid session time")
+}
+
+fn get_caffeine_time_utc_tuesday() -> NaiveTime {
+    NaiveTime::from_hms_opt(13, 0, 0).expect("Invalid session time")
+}
+
+fn get_coffee_time_utc_thursday() -> NaiveTime {
+    NaiveTime::from_hms_opt(15, 0, 0).expect("Invalid session time")
+}
+
+fn get_start_date() -> NaiveDate {
+    NaiveDate::from_ymd_opt(2022, 1, 6).unwrap()
+}
 
 fn main() {
     let matches = App::new("cwc")
         .version("1.0")
-        .author("Your Name <your.email@example.com>")
-        .about("Generates event messages for social media")
+        .author("Ollie Gilbey <olliegilbey@gmail.com>")
+        .about("Generates Coffee with CUDOS event messages for social media")
         .arg(
             Arg::with_name("location")
                 .short('l')
                 .long("location")
                 .value_name("LOCATION")
-                .help("Sets the location for the event (Twitter or Discord)")
+                .help("Sets the location for the event (X or Discord)")
                 .required(true)
                 .takes_value(true),
         )
@@ -43,17 +59,17 @@ fn main() {
 
     // Calculate the session number
     let start_date = get_start_date();
-    let now = Local::now().naive_local();
+    let now = Utc::now().naive_utc();
     let (session_num, next_event_day) = session_number(start_date, now);
 
     // Generate the Unix timestamp
     let session_time = match next_event_day.weekday() {
-        chrono::Weekday::Tue => NaiveTime::from_hms_opt(12, 0, 0).expect("Invalid session time"),
-        chrono::Weekday::Thu => NaiveTime::from_hms_opt(16, 0, 0).expect("Invalid session time"),
+        chrono::Weekday::Tue => get_coffee_time_utc_tuesday(),
+        chrono::Weekday::Thu => get_coffee_time_utc_thursday(),
         _ => unreachable!(),
     };
     let session_datetime = NaiveDateTime::new(next_event_day.date(), session_time);
-    let unix_timestamp = Local
+    let unix_timestamp = Utc
         .from_local_datetime(&session_datetime)
         .unwrap()
         .timestamp();
@@ -72,19 +88,20 @@ fn main() {
         fmt_msg_announcement(location, session_num as u32, unix_timestamp, topics, url);
     println!("{}", announcement_msg.purple());
 
-    println!("{}", "\n------TWEET---------------\n".red());
+    println!("{}", "\n------XEET---------------\n".red());
 
-    // Format and print the tweet message
-    let tweet_msg = fmt_msg_tweet(location, session_num as u32, topics, url);
-    println!("{}", tweet_msg.blue());
+    // Format and print the xeet message
+    let xeet_msg = fmt_msg_xeet(location, session_num as u32, topics, url);
+    println!("{}", xeet_msg.blue());
 
     println!("{}", "\n------CAFFEINE------------\n".red());
 
     // For CUDOS Caffeine
     if session_datetime.weekday() == chrono::Weekday::Tue {
-        let caffeine_datetime = session_datetime + chrono::Duration::hours(2);
+        let caffeine_datetime =
+            NaiveDateTime::new(session_datetime.date(), get_caffeine_time_utc_tuesday());
 
-        let caffeine_timestamp = Local
+        let caffeine_timestamp = Utc
             .from_local_datetime(&caffeine_datetime)
             .unwrap()
             .timestamp();
@@ -94,10 +111,6 @@ fn main() {
         let caffeine_msg = fmt_msg_caffeine(caffeine_timestamp, caffeine_number);
         println!("{}", caffeine_msg.purple());
     }
-}
-
-fn get_start_date() -> NaiveDate {
-    NaiveDate::from_ymd_opt(2022, 1, 6).unwrap()
 }
 
 fn session_number(start_date: NaiveDate, now: NaiveDateTime) -> (i32, NaiveDateTime) {
@@ -110,7 +123,7 @@ fn session_number(start_date: NaiveDate, now: NaiveDateTime) -> (i32, NaiveDateT
 
     match weekday {
         chrono::Weekday::Tue => {
-            if now.time() < NaiveTime::from_hms_opt(12, 0, 0).unwrap() {
+            if now.time() < get_coffee_time_utc_tuesday() {
                 session_num += 2;
             } else {
                 next_event_day += chrono::Duration::days(2);
@@ -118,7 +131,7 @@ fn session_number(start_date: NaiveDate, now: NaiveDateTime) -> (i32, NaiveDateT
             }
         }
         chrono::Weekday::Thu => {
-            if now.time() < NaiveTime::from_hms_opt(16, 0, 0).unwrap() {
+            if now.time() < get_coffee_time_utc_thursday() {
                 session_num += 1;
             } else {
                 next_event_day += chrono::Duration::days(5);
@@ -148,9 +161,17 @@ fn session_number(start_date: NaiveDate, now: NaiveDateTime) -> (i32, NaiveDateT
     }
 
     if next_event_day.weekday() == chrono::Weekday::Tue {
-        next_event_day = next_event_day.date().and_hms_opt(12, 0, 0).unwrap();
+        let time = get_coffee_time_utc_tuesday();
+        next_event_day = next_event_day
+            .date()
+            .and_hms_opt(time.hour(), time.minute(), time.second())
+            .unwrap();
     } else if next_event_day.weekday() == chrono::Weekday::Thu {
-        next_event_day = next_event_day.date().and_hms_opt(16, 0, 0).unwrap();
+        let time = get_coffee_time_utc_thursday();
+        next_event_day = next_event_day
+            .date()
+            .and_hms_opt(time.hour(), time.minute(), time.second())
+            .unwrap();
     }
 
     (session_num as i32, next_event_day)
@@ -158,10 +179,8 @@ fn session_number(start_date: NaiveDate, now: NaiveDateTime) -> (i32, NaiveDateT
 
 fn fmt_msg_event(location: &str, session_number: u32) -> String {
     let (platform, comms_info) = match location {
-        "t" => (
-            "on Twitter Spaces",
-            "below the Twitter Space or request to speak",
-        ),
+        "t" => ("on X Spaces", "below the X Space or request to speak"),
+        "x" => ("on X Spaces", "below the X Space or request to speak"),
         "d" => (
             "here on Discord in the `coffee-with-cudos` voice channel",
             "into the channel chat or unmute your microphone and ask them in the voice channel",
@@ -189,7 +208,8 @@ fn fmt_msg_announcement(
     url: &str,
 ) -> String {
     let platform = match location {
-        "t" => "Twitter Spaces",
+        "t" => "X Spaces",
+        "x" => "X Spaces",
         "d" => "Discord",
         _ => "Unknown Platform",
     };
@@ -212,9 +232,10 @@ Keen to see you there!! 🚀"#,
     )
 }
 
-fn fmt_msg_tweet(location: &str, session_number: u32, topics: &str, url: &str) -> String {
+fn fmt_msg_xeet(location: &str, session_number: u32, topics: &str, url: &str) -> String {
     let platform = match location {
-        "t" => "on Twitter Spaces",
+        "t" => "on X Spaces",
+        "x" => "on X Spaces",
         "d" => "on Discord in the `coffee-with-cudos` voice channel",
         _ => "Unknown Platform",
     };
@@ -262,7 +283,7 @@ mod tests {
                 1,
                 NaiveDate::from_ymd_opt(2022, 1, 6)
                     .unwrap()
-                    .and_hms_opt(16, 0, 0)
+                    .and_hms_opt(15, 0, 0)
                     .unwrap()
             )
         );
@@ -283,7 +304,7 @@ mod tests {
                 124,
                 NaiveDate::from_ymd_opt(2023, 3, 14)
                     .unwrap()
-                    .and_hms_opt(12, 0, 0)
+                    .and_hms_opt(11, 0, 0)
                     .unwrap()
             )
         );
@@ -297,14 +318,14 @@ mod tests {
                 start_date,
                 NaiveDate::from_ymd_opt(2023, 3, 14)
                     .unwrap()
-                    .and_hms_opt(11, 59, 59)
+                    .and_hms_opt(10, 59, 59)
                     .unwrap()
             ),
             (
                 124,
                 NaiveDate::from_ymd_opt(2023, 3, 14)
                     .unwrap()
-                    .and_hms_opt(12, 0, 0)
+                    .and_hms_opt(11, 0, 0)
                     .unwrap()
             )
         );
@@ -318,14 +339,14 @@ mod tests {
                 start_date,
                 NaiveDate::from_ymd_opt(2023, 3, 14)
                     .unwrap()
-                    .and_hms_opt(12, 1, 0)
+                    .and_hms_opt(11, 1, 0)
                     .unwrap()
             ),
             (
                 125,
                 NaiveDate::from_ymd_opt(2023, 3, 16)
                     .unwrap()
-                    .and_hms_opt(16, 0, 0)
+                    .and_hms_opt(15, 0, 0)
                     .unwrap()
             )
         );
@@ -346,7 +367,7 @@ mod tests {
                 133,
                 NaiveDate::from_ymd_opt(2023, 4, 13)
                     .unwrap()
-                    .and_hms_opt(16, 0, 0)
+                    .and_hms_opt(15, 0, 0)
                     .unwrap()
             )
         );
@@ -360,14 +381,14 @@ mod tests {
                 start_date,
                 NaiveDate::from_ymd_opt(2023, 4, 13)
                     .unwrap()
-                    .and_hms_opt(15, 59, 59)
+                    .and_hms_opt(14, 59, 59)
                     .unwrap()
             ),
             (
                 133,
                 NaiveDate::from_ymd_opt(2023, 4, 13)
                     .unwrap()
-                    .and_hms_opt(16, 0, 0)
+                    .and_hms_opt(15, 0, 0)
                     .unwrap()
             )
         );
@@ -381,14 +402,14 @@ mod tests {
                 start_date,
                 NaiveDate::from_ymd_opt(2023, 4, 13)
                     .unwrap()
-                    .and_hms_opt(16, 01, 0)
+                    .and_hms_opt(15, 01, 0)
                     .unwrap()
             ),
             (
                 134,
                 NaiveDate::from_ymd_opt(2023, 4, 18)
                     .unwrap()
-                    .and_hms_opt(12, 0, 0)
+                    .and_hms_opt(11, 0, 0)
                     .unwrap()
             )
         );
@@ -409,7 +430,7 @@ mod tests {
                 142,
                 NaiveDate::from_ymd_opt(2023, 5, 16)
                     .unwrap()
-                    .and_hms_opt(12, 0, 0)
+                    .and_hms_opt(11, 0, 0)
                     .unwrap()
             )
         );
@@ -430,7 +451,7 @@ mod tests {
                 142,
                 NaiveDate::from_ymd_opt(2023, 5, 16)
                     .unwrap()
-                    .and_hms_opt(12, 0, 0)
+                    .and_hms_opt(11, 0, 0)
                     .unwrap()
             )
         );
@@ -451,7 +472,7 @@ mod tests {
                 142,
                 NaiveDate::from_ymd_opt(2023, 5, 16)
                     .unwrap()
-                    .and_hms_opt(12, 0, 0)
+                    .and_hms_opt(11, 0, 0)
                     .unwrap()
             )
         );
